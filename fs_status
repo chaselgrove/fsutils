@@ -1,0 +1,298 @@
+#!/usr/bin/python
+
+# See file COPYING distributed with fsutils for copyright and license.
+
+import sys
+import os
+import argparse
+import datetime
+import dateutil.parser
+
+version = '0.1.0'
+
+class FSStatusError(Exception):
+
+    """base class for exceptions"""
+
+    def __init__(self, message):
+        self.message = message
+        return
+
+    def __str__(self):
+        return self.message
+
+class SubjectError(FSStatusError):
+
+    """error reading subject status"""
+
+class NoRunError(FSStatusError):
+
+    """no run found"""
+
+    def __init__(self):
+        return
+
+    def __str__(self):
+        return 'no run found'
+
+class LogError(FSStatusError):
+
+    """error in recon-all.log"""
+
+class Subject:
+
+    def __init__(self, spec, subjects_dir=None):
+        self.subjects_dir = subjects_dir
+        self.spec = spec
+        if not self.subjects_dir or '/' in spec:
+            self._init_from_path(self.spec)
+        else:
+            log = os.path.join(self.subjects_dir, 
+                               spec, 
+                               'scripts', 
+                               'recon-all.log')
+            self._init_from_path(log)
+        return
+
+    def _init_from_path(self, path):
+        if os.path.isdir(path):
+            log = os.path.join(path, 'scripts', 'recon-all.log')
+            self._init_from_path(log)
+            return
+        self._read_log(path)
+        return
+
+    def _read_log(self, path):
+        if not os.path.exists(path):
+            raise SubjectError('%s does not exist' % path)
+        self.runs = []
+        with open(path) as fo:
+            try:
+                run = Run(fo)
+            except NoRunError:
+                pass
+            except LogError, data:
+                raise SubjectError('error in log file')
+            else:
+                self.runs.append(run)
+        if not self.runs:
+            raise SubjectError('no runs found')
+        return
+
+class Run:
+
+    def __init__(self, fo):
+        self.t_end = None
+        self.steps = []
+        end_state = self.read_log(fo)
+        if end_state == 'start':
+            raise NoRunError()
+        return
+
+    def read_log(self, fo):
+        """read a recon-all.log
+
+        states are:
+
+            start
+            header block
+            post-header
+            memory block
+            post-memory
+            verions block
+            step
+            end
+        """
+        state = 'start'
+        for line in fo:
+            line = line.strip()
+            if line.startswith('To report a problem, see'):
+                # this appears sometimes after a run (after we are done with 
+                # this processing), so it will show up at the start of our 
+                # processing of the next run
+                continue
+            if state == 'start':
+                if line:
+                    state = 'header block'
+                    self.t_start = dateutil.parser.parse(line)
+                continue
+            if state == 'header block':
+                if not line:
+                    state = 'post-header'
+                continue
+            if state == 'post-header':
+                if line:
+                    state = 'memory block'
+                continue
+            if state == 'memory block':
+                if not line:
+                    state = 'post-memory'
+                continue
+            if state == 'post-memory':
+                if line:
+                    state = 'versions block'
+                continue
+            if line.startswith('#@# '):
+                step = line[4:-28].strip()
+                t = dateutil.parser.parse(line[-28:])
+                self.steps.append((step, t))
+                state = 'step'
+                continue
+            # state == 'step'
+            if 'exited with ERRORS' in line:
+                self.error = True
+                self.t_end = dateutil.parser.parse(line[-28:])
+                state = 'end'
+                break
+            if 'finished without error' in line:
+                self.error = False
+                self.t_end = dateutil.parser.parse(line[-28:])
+                state = 'end'
+                break
+        return state
+
+progname = os.path.basename(sys.argv[0])
+
+description = """
+
+Report on the status of FreeSurfer runs.
+
+By default, {progname} reports on the latest run for each subject in $SUBJECTS_DIR.
+
+An alternate subjects directory can be specified using the -S flag.
+
+Individual subjects can be selected at the command line.  If these specifiers include a forward slash or if no subjects directory is given, they are taken as paths to subject directories or recon-all.log files.
+
+Examples:
+
+    {progname} -- report on the last run for all subjects in $SUBJECTS_DIR
+
+    {progname} -S /data/study_2 S001 S002 S003 -- report on the last run for subjects S001, S002, and S003 in SUBJECTS_DIR=/data/study_2
+
+    {progname} ./S001 /tmp/recon-all.log -- report on the last run for the subject in S001 and the subject described by /tmp/recon-all.log
+
+Output is in a table with the following fields:
+
+    NR -- number of runs
+
+    RN -- the run number being reported on
+
+    START -- the run start time
+
+    END -- the run end time
+
+    TRUN -- the run time
+
+    E -- 'E' if the run exited with errors
+
+    SPEC -- the subject specifier
+
+""".format(progname=progname)
+
+def format_time(t):
+    return t.strftime('%Y-%m-%d %H:%M:%S')
+
+def format_delta(d):
+    s = d.seconds % 60
+    minutes = d.seconds / 60
+    m = minutes % 60
+    hours = minutes / 60
+    h = 24 * d.days + hours
+    return '%02d:%02d:%02d' % (h, m, s)
+
+parser = argparse.ArgumentParser(description=description, 
+                                 formatter_class=argparse.RawTextHelpFormatter)
+
+parser.add_argument('--version', '-v', 
+                    default=False, 
+                    action='store_true', 
+                    help='show version and exit')
+parser.add_argument('--subjects-dir', '-S')
+parser.add_argument('subjects', 
+                    nargs='*')
+
+args = parser.parse_args()
+
+if args.version:
+    print '%s %s' % (progname, version)
+    sys.exit(0)
+
+subjects_dir = args.subjects_dir
+if not subjects_dir and 'SUBJECTS_DIR' in os.environ:
+    subjects_dir = os.environ['SUBJECTS_DIR']
+
+subjects = []
+
+if not subjects_dir:
+    if not args.subjects:
+        parser.print_usage(sys.stderr)
+        fmt = '%s: error: no subjects directory or subjects given\n'
+        sys.stderr.write(fmt % progname)
+        sys.exit(2)
+    for spec in args.subjects:
+        try:
+            subjects.append(Subject(spec))
+        except SubjectError, data:
+            sys.stderr.write('%s: %s: %s\n' % (progname, spec, str(data)))
+else:
+    if not os.path.isdir(subjects_dir):
+        msg = '%s: %s is not a directory\n' % (progname, subjects_dir)
+        sys.stderr.write(msg)
+        sys.exit(1)
+    if not args.subjects:
+        for subject in os.listdir(subjects_dir):
+            try:
+                subjects.append(Subject(subject, subjects_dir=subjects_dir))
+            except SubjectError:
+                # subjects directory given but no specific subjects given 
+                # means that we're asked to scan for subjects, so in this 
+                # case we won't report on errors in subjects we try
+                pass
+    else:
+        for subject in args.subjects:
+            try:
+                subjects.append(Subject(subject, subjects_dir=subjects_dir))
+            except SubjectError, data:
+                msg = '%s: %s: %s\n' % (progname, subject, str(data))
+                sys.stderr.write(msg)
+
+if not subjects:
+    sys.stderr.write('%s: no subjects found\n' % progname)
+    sys.exit(1)
+
+subjects.sort(lambda a, b: cmp(a.spec, b.spec))
+
+now = datetime.datetime.now(dateutil.tz.tzlocal())
+
+header = 'NR  RN  START                END                  TRUN      E  SPEC'
+fmt = '{nr:2}  {rn:2}  {start}  {end:19}  {trun}  {e:1}  {spec}'
+
+print header
+for s in subjects:
+    n_runs = len(s.runs)
+    run_number = n_runs
+    run = s.runs[run_number-1]
+    t_start = format_time(run.t_start)
+    if not run.t_end:
+        t_end = ''
+        t_run = format_delta(now-run.t_start)
+        se = ''
+    else:
+        t_end = format_time(run.t_end)
+        t_run = format_delta(run.t_end-run.t_start)
+        if run.error:
+            se = 'E'
+        else:
+            se = ''
+    t_start = format_time(run.t_start)
+    print fmt.format(nr=n_runs, 
+                     rn=run_number, 
+                     start=t_start, 
+                     end=t_end, 
+                     trun=t_run, 
+                     e=se, 
+                     spec=s.spec)
+
+sys.exit(0)
+
+# eof
