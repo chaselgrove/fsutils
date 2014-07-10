@@ -67,14 +67,15 @@ class Subject:
             raise SubjectError('%s does not exist' % path)
         self.runs = []
         with open(path) as fo:
-            try:
-                run = Run(fo)
-            except NoRunError:
-                pass
-            except LogError, data:
-                raise SubjectError('error in log file')
-            else:
-                self.runs.append(run)
+            while True:
+                try:
+                    run = Run(fo)
+                except NoRunError:
+                    break
+                except LogError, data:
+                    raise SubjectError('error in log file')
+                else:
+                    self.runs.append(run)
         if not self.runs:
             raise SubjectError('no runs found')
         return
@@ -110,6 +111,9 @@ class Run:
                 # this appears sometimes after a run (after we are done with 
                 # this processing), so it will show up at the start of our 
                 # processing of the next run
+                continue
+            if line.startswith('New invocation'):
+                # appears between runs; ignore
                 continue
             if state == 'start':
                 if line:
