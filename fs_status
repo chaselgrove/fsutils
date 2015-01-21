@@ -73,6 +73,8 @@ class Subject:
                 except NoRunError:
                     break
                 except Exception:
+                    import traceback
+                    traceback.print_exc()
                     raise LogError('error parsing log file')
                 else:
                     self.runs.append(run)
@@ -114,6 +116,9 @@ class Run:
                 continue
             if line.startswith('New invocation'):
                 # appears between runs; ignore
+                continue
+            if line == r'\n\n':
+                # sometimes appears between runs; ignore
                 continue
             if state == 'start':
                 if line:
