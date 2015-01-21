@@ -8,3 +8,9 @@ https://github.com/chaselgrove/fsutils
 0.1.1 -- 10 July 2014
 
     Added support for multiple runs.
+
+0.1.2 -- 21 January 2015
+
+    Fixed a bug in subject error reporting.
+
+    Accommodating lines of "\n\n" in recon-all.log between runs.
