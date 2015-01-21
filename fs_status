@@ -72,8 +72,8 @@ class Subject:
                     run = Run(fo)
                 except NoRunError:
                     break
-                except LogError, data:
-                    raise SubjectError('error in log file')
+                except Exception:
+                    raise LogError('error parsing log file')
                 else:
                     self.runs.append(run)
         if not self.runs:
@@ -236,7 +236,7 @@ if not subjects_dir:
     for spec in args.subjects:
         try:
             subjects.append(Subject(spec))
-        except SubjectError, data:
+        except FSStatusError, data:
             sys.stderr.write('%s: %s: %s\n' % (progname, spec, str(data)))
 else:
     if not os.path.isdir(subjects_dir):
@@ -252,11 +252,14 @@ else:
                 # means that we're asked to scan for subjects, so in this 
                 # case we won't report on errors in subjects we try
                 pass
+            except LogError, data:
+                msg = '%s: %s: %s\n' % (progname, subject, str(data))
+                sys.stderr.write(msg)
     else:
         for subject in args.subjects:
             try:
                 subjects.append(Subject(subject, subjects_dir=subjects_dir))
-            except SubjectError, data:
+            except FSStatusError, data:
                 msg = '%s: %s: %s\n' % (progname, subject, str(data))
                 sys.stderr.write(msg)
 
