@@ -14,3 +14,11 @@ https://github.com/chaselgrove/fsutils
     Fixed a bug in subject error reporting.
 
     Accommodating lines of "\n\n" in recon-all.log between runs.
+
+0.1.3 -- 23 January 2015
+
+    Fixed a deprecation warning.
+
+    Added support for header suppression (-H).
+
+    Tweaked the program description string.
