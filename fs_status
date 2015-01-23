@@ -166,19 +166,24 @@ description = """
 
 Report on the status of FreeSurfer runs.
 
-By default, {progname} reports on the latest run for each subject in $SUBJECTS_DIR.
+By default, {progname} reports on the latest run for each subject in 
+$SUBJECTS_DIR.
 
 An alternate subjects directory can be specified using the -S flag.
 
-Individual subjects can be selected at the command line.  If these specifiers include a forward slash or if no subjects directory is given, they are taken as paths to subject directories or recon-all.log files.
+Individual subjects can be selected at the command line.  If these 
+specifiers include a forward slash or if no subjects directory is given, 
+they are taken as paths to subject directories or recon-all.log files.
 
 Examples:
 
     {progname} -- report on the last run for all subjects in $SUBJECTS_DIR
 
-    {progname} -S /data/study_2 S001 S002 S003 -- report on the last run for subjects S001, S002, and S003 in SUBJECTS_DIR=/data/study_2
+    {progname} -S /data/study_2 S001 S002 S003 -- report on the last run 
+        for subjects S001, S002, and S003 in SUBJECTS_DIR=/data/study_2
 
-    {progname} ./S001 /tmp/recon-all.log -- report on the last run for the subject in S001 and the subject described by /tmp/recon-all.log
+    {progname} ./S001 /tmp/recon-all.log -- report on the last run for 
+        the subject in S001 and the subject described by /tmp/recon-all.log
 
 Output is in a table with the following fields:
 
