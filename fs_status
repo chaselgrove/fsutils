@@ -216,6 +216,11 @@ parser.add_argument('--version', '-v',
                     default=False, 
                     action='store_true', 
                     help='show version and exit')
+parser.add_argument('-H', '--suppress-header', 
+                    default=False, 
+                    action='store_true', 
+                    dest='suppress_header', 
+                    help='suppress header')
 parser.add_argument('--subjects-dir', '-S')
 parser.add_argument('subjects', 
                     nargs='*')
@@ -279,7 +284,9 @@ now = datetime.datetime.now(dateutil.tz.tzlocal())
 header = 'NR  RN  START                END                  TRUN      E  SPEC'
 fmt = '{nr:2}  {rn:2}  {start}  {end:19}  {trun}  {e:1}  {spec}'
 
-print header
+if not args.suppress_header:
+    print header
+
 for s in subjects:
     n_runs = len(s.runs)
     run_number = n_runs
