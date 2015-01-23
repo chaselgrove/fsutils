@@ -212,9 +212,10 @@ def format_delta(d):
 parser = argparse.ArgumentParser(description=description, 
                                  formatter_class=argparse.RawTextHelpFormatter)
 
-parser.add_argument('--version', '-v', 
+parser.add_argument('-v', '--version', 
                     default=False, 
                     action='store_true', 
+                    dest='version', 
                     help='show version and exit')
 parser.add_argument('-H', '--suppress-header', 
                     default=False, 
