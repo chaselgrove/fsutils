@@ -92,6 +92,23 @@ class Run:
             raise NoRunError()
         return
 
+    def __getitem__(self, key):
+        ukey = key.upper()
+        if ukey == 'E':
+            return self.error
+        if ukey == 'R':
+            return self.t_end is Null
+        if ukey == 'TSTART':
+            return self.t_start
+        if ukey == 'TFINISH':
+            return self.t_end
+        if ukey == 'TRUN':
+            if self.t_end:
+                return self.t_end - self.t_start
+            else:
+                return now - self.t_start
+        raise KeyError(key)
+
     def read_log(self, fo):
         """read a recon-all.log
 
@@ -243,6 +260,8 @@ if not subjects_dir and 'SUBJECTS_DIR' in os.environ:
 
 subjects = []
 
+now = datetime.datetime.now(dateutil.tz.tzlocal())
+
 if not subjects_dir:
     if not args.subjects:
         parser.print_usage(sys.stderr)
@@ -285,8 +304,6 @@ if not subjects:
 
 subjects.sort(lambda a, b: cmp(a.spec, b.spec))
 
-now = datetime.datetime.now(dateutil.tz.tzlocal())
-
 header = 'NR  RN  START                END                  TRUN      E  SPEC'
 fmt = '{nr:2}  {rn:2}  {start}  {end:19}  {trun}  {e:1}  {spec}'
 
@@ -297,19 +314,14 @@ for s in subjects:
     n_runs = len(s.runs)
     run_number = n_runs
     run = s.runs[run_number-1]
-    t_start = format_time(run.t_start)
-    if not run.t_end:
+    t_start = format_time(run['TSTART'])
+    if not run['TFINISH']:
         t_end = ''
-        t_run = format_delta(now-run.t_start)
-        se = ''
+        t_run = format_delta(now-run['TSTART'])
     else:
-        t_end = format_time(run.t_end)
-        t_run = format_delta(run.t_end-run.t_start)
-        if run.error:
-            se = 'E'
-        else:
-            se = ''
-    t_start = format_time(run.t_start)
+        t_end = format_time(run['TFINISH'])
+        t_run = format_delta(run['TFINISH']-run['TSTART'])
+    se = run['E']
     print fmt.format(nr=n_runs, 
                      rn=run_number, 
                      start=t_start, 
