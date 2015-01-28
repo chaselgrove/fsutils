@@ -54,6 +54,14 @@ class Subject:
             self._init_from_path(log)
         return
 
+    def __getitem__(self, key):
+        if isinstance(key, int):
+            return self.runs[key]
+        raise KeyError(key)
+
+    def __len__(self):
+        return len(self.runs)
+
     def _init_from_path(self, path):
         if os.path.isdir(path):
             log = os.path.join(path, 'scripts', 'recon-all.log')
@@ -311,9 +319,9 @@ if not args.suppress_header:
     print header
 
 for s in subjects:
-    n_runs = len(s.runs)
+    n_runs = len(s)
     run_number = n_runs
-    run = s.runs[run_number-1]
+    run = s[run_number-1]
     t_start = format_time(run['TSTART'])
     if not run['TFINISH']:
         t_end = ''
