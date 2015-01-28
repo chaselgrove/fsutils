@@ -115,6 +115,10 @@ class Run:
                 return self.t_end - self.t_start
             else:
                 return now - self.t_start
+        if ukey == 'SUBJID':
+            return self.subjid
+        if ukey == 'BUILD_STAMP':
+            return self.build_stamp
         raise KeyError(key)
 
     def read_log(self, fo):
@@ -130,8 +134,22 @@ class Run:
             verions block
             step
             end
+
+        lines in the header block:
+
+            date
+            pwd
+            $0
+            args
+            subjid
+            SUBJECTS_DIR
+            FREESURFER_HOME
+            actual FREESURFER_HOME
+            build stamp
+            uname -a
         """
         state = 'start'
+        headers = []
         for line in fo:
             line = line.strip()
             if line.startswith('To report a problem, see'):
@@ -148,11 +166,23 @@ class Run:
             if state == 'start':
                 if line:
                     state = 'header block'
-                    self.t_start = dateutil.parser.parse(line)
+                    headers.append(line)
                 continue
             if state == 'header block':
-                if not line:
+                if line:
+                    headers.append(line)
+                else:
                     state = 'post-header'
+                    self.t_start = dateutil.parser.parse(headers[0])
+                    self.pwd = headers[1]
+                    self.script_name = headers[2]
+                    self.args = headers[3]
+                    self.subjid = headers[4]
+                    self.subjects_dir = headers[5]
+                    self.freesurfer_home = headers[6]
+                    self.actual_freesurfer_home = headers[7]
+                    self.build_stamp = headers[8]
+                    self.uname = headers[9]
                 continue
             if state == 'post-header':
                 if line:
@@ -319,9 +349,7 @@ if not args.suppress_header:
     print header
 
 for s in subjects:
-    n_runs = len(s)
-    run_number = n_runs
-    run = s[run_number-1]
+    run = s[-1]
     t_start = format_time(run['TSTART'])
     if not run['TFINISH']:
         t_end = ''
@@ -330,8 +358,8 @@ for s in subjects:
         t_end = format_time(run['TFINISH'])
         t_run = format_delta(run['TFINISH']-run['TSTART'])
     se = run['E']
-    print fmt.format(nr=n_runs, 
-                     rn=run_number, 
+    print fmt.format(nr=len(s), 
+                     rn=len(s), 
                      start=t_start, 
                      end=t_end, 
                      trun=t_run, 
