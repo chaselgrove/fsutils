@@ -77,7 +77,7 @@ class Subject:
         with open(path) as fo:
             while True:
                 try:
-                    run = Run(fo)
+                    run = Run(self, len(self.runs), fo)
                 except NoRunError:
                     break
                 except Exception:
@@ -88,38 +88,38 @@ class Subject:
                     self.runs.append(run)
         if not self.runs:
             raise SubjectError('no runs found')
+        for run in self.runs:
+            run.NR = len(self.runs)
         return
 
 class Run:
 
-    def __init__(self, fo):
+    def __init__(self, subject, run_number, fo):
+        self.subject = subject
+        self.run_number = run_number
         self.t_end = None
         self.steps = []
         end_state = self.read_log(fo)
         if end_state == 'start':
             raise NoRunError()
+        # set the printable attributes (accessed directly during output 
+        # formatting)
+        # NR is set by the subject object
+        # RN is one-based while run_number is zero-based
+        self.RN = self.run_number+1
+        self.TSTART = format_time(self.t_start)
+        if not self.t_end:
+            self.TFINISH = ''
+            self.TRUN = format_delta(now-self.t_start)
+        else:
+            self.TFINISH = format_time(self.t_end)
+            self.TRUN = format_delta(self.t_end-self.t_start)
+        if self.error:
+            self.E = 'E'
+        else:
+            self.E = ''
+        self.SPEC = self.subject.spec
         return
-
-    def __getitem__(self, key):
-        ukey = key.upper()
-        if ukey == 'E':
-            return self.error
-        if ukey == 'R':
-            return self.t_end is Null
-        if ukey == 'TSTART':
-            return self.t_start
-        if ukey == 'TFINISH':
-            return self.t_end
-        if ukey == 'TRUN':
-            if self.t_end:
-                return self.t_end - self.t_start
-            else:
-                return now - self.t_start
-        if ukey == 'SUBJID':
-            return self.subjid
-        if ukey == 'BUILD_STAMP':
-            return self.build_stamp
-        raise KeyError(key)
 
     def read_log(self, fo):
         """read a recon-all.log
@@ -361,7 +361,7 @@ for field in output_fields:
         sys.exit(1)
     width = field_widths[field]
     headers.append(field.ljust(width))
-    fmts.append('{%s:%d}' % (field, width))
+    fmts.append('{run.%s:%d}' % (field, width))
 
 header = '  '.join(headers).strip()
 fmt = '  '.join(fmts).strip()
@@ -370,20 +370,8 @@ if not args.suppress_header:
     print header
 
 for s in subjects:
-    print_vars = {}
-    print_vars['NR'] = len(s)
-    print_vars['RN'] = len(s)
     run = s[-1]
-    print_vars['TSTART'] = format_time(run['TSTART'])
-    if not run['TFINISH']:
-        print_vars['TFINISH'] = ''
-        print_vars['TRUN'] = format_delta(now-run['TSTART'])
-    else:
-        print_vars['TFINISH'] = format_time(run['TFINISH'])
-        print_vars['TRUN'] = format_delta(run['TFINISH']-run['TSTART'])
-    print_vars['E'] = run['E']
-    print_vars['SPEC'] = s.spec
-    print fmt.format(**print_vars).rstrip()
+    print fmt.format(run=run).rstrip()
 
 sys.exit(0)
 
