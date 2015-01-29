@@ -257,9 +257,9 @@ Output is in a table with the following fields:
 
     RN -- the run number being reported on
 
-    START -- the run start time
+    TSTART -- the run start time
 
-    END -- the run end time
+    TFINISH -- the run end time
 
     TRUN -- the run time
 
