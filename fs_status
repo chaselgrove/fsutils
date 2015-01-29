@@ -215,6 +215,17 @@ class Run:
                 break
         return state
 
+# default list of output fields
+output_fields = ('NR', 'RN', 'TSTART', 'TFINISH', 'TRUN', 'E', 'SPEC')
+
+field_widths = {'NR': 2, 
+                'RN': 2, 
+                'TSTART': 19, 
+                'TFINISH': 19, 
+                'TRUN': 8, 
+                'E': 1, 
+                'SPEC': 8}
+
 progname = os.path.basename(sys.argv[0])
 
 description = """
@@ -342,29 +353,37 @@ if not subjects:
 
 subjects.sort(lambda a, b: cmp(a.spec, b.spec))
 
-header = 'NR  RN  START                END                  TRUN      E  SPEC'
-fmt = '{nr:2}  {rn:2}  {start}  {end:19}  {trun}  {e:1}  {spec}'
+headers = []
+fmts = []
+for field in output_fields:
+    if field not in field_widths:
+        sys.stderr.write('%s: unknown output field "%s"\n' % (progname, field))
+        sys.exit(1)
+    width = field_widths[field]
+    headers.append(field.ljust(width))
+    fmts.append('{%s:%d}' % (field, width))
+
+header = '  '.join(headers).strip()
+fmt = '  '.join(fmts).strip()
 
 if not args.suppress_header:
     print header
 
 for s in subjects:
+    print_vars = {}
+    print_vars['NR'] = len(s)
+    print_vars['RN'] = len(s)
     run = s[-1]
-    t_start = format_time(run['TSTART'])
+    print_vars['TSTART'] = format_time(run['TSTART'])
     if not run['TFINISH']:
-        t_end = ''
-        t_run = format_delta(now-run['TSTART'])
+        print_vars['TFINISH'] = ''
+        print_vars['TRUN'] = format_delta(now-run['TSTART'])
     else:
-        t_end = format_time(run['TFINISH'])
-        t_run = format_delta(run['TFINISH']-run['TSTART'])
-    se = run['E']
-    print fmt.format(nr=len(s), 
-                     rn=len(s), 
-                     start=t_start, 
-                     end=t_end, 
-                     trun=t_run, 
-                     e=se, 
-                     spec=s.spec)
+        print_vars['TFINISH'] = format_time(run['TFINISH'])
+        print_vars['TRUN'] = format_delta(run['TFINISH']-run['TSTART'])
+    print_vars['E'] = run['E']
+    print_vars['SPEC'] = s.spec
+    print fmt.format(**print_vars).rstrip()
 
 sys.exit(0)
 
