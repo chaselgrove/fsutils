@@ -215,9 +215,8 @@ class Run:
                 break
         return state
 
-# default list of output fields
-output_fields = ('NR', 'RN', 'TSTART', 'TFINISH', 'TRUN', 'E', 'SPEC')
-
+# output field widths
+# this is also used to check for valid output fields
 field_widths = {'NR': 2, 
                 'RN': 2, 
                 'TSTART': 19, 
@@ -251,7 +250,7 @@ Examples:
     {progname} ./S001 /tmp/recon-all.log -- report on the last run for 
         the subject in S001 and the subject described by /tmp/recon-all.log
 
-Output is in a table with the following fields:
+Output can be customized by a comma-separated list of fields:
 
     NR -- number of runs
 
@@ -293,6 +292,10 @@ parser.add_argument('-H', '--suppress-header',
                     action='store_true', 
                     dest='suppress_header', 
                     help='suppress header')
+parser.add_argument('-o', '--output', 
+                    dest='output_fields', 
+                    default='NR,RN,TSTART,TFINISH,TRUN,E,SPEC', 
+                    help='output fields')
 parser.add_argument('--subjects-dir', '-S')
 parser.add_argument('subjects', 
                     nargs='*')
@@ -302,6 +305,14 @@ args = parser.parse_args()
 if args.version:
     print '%s %s' % (progname, version)
     sys.exit(0)
+
+output_fields = []
+for field in args.output_fields.split(','):
+    field = field.upper().strip()
+    if field not in field_widths:
+        sys.stderr.write('%s: unknown output field "%s"\n' % (progname, field))
+        sys.exit(1)
+    output_fields.append(field)
 
 subjects_dir = args.subjects_dir
 if not subjects_dir and 'SUBJECTS_DIR' in os.environ:
@@ -356,9 +367,6 @@ subjects.sort(lambda a, b: cmp(a.spec, b.spec))
 headers = []
 fmts = []
 for field in output_fields:
-    if field not in field_widths:
-        sys.stderr.write('%s: unknown output field "%s"\n' % (progname, field))
-        sys.exit(1)
     width = field_widths[field]
     headers.append(field.ljust(width))
     fmts.append('{run.%s:%d}' % (field, width))
