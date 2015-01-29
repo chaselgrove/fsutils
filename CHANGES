@@ -22,3 +22,7 @@ https://github.com/chaselgrove/fsutils
     Added support for header suppression (-H).
 
     Tweaked the program description string.
+
+0.2.0 -- 29 January 2015
+
+    Added support for user-specified output fields.
