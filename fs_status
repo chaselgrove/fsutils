@@ -89,7 +89,8 @@ class Subject:
         if not self.runs:
             raise SubjectError('no runs found')
         for run in self.runs:
-            run.NR = len(self.runs)
+            run.order_vars['NR'] = len(self.runs)
+            run.print_vars['NR'] = len(self.runs)
         return
 
 class Run:
@@ -102,23 +103,32 @@ class Run:
         end_state = self.read_log(fo)
         if end_state == 'start':
             raise NoRunError()
-        # set the printable attributes (accessed directly during output 
-        # formatting)
+        self.print_vars = {}
+        self.order_vars = {}
         # NR is set by the subject object
-        # RN is one-based while run_number is zero-based
-        self.RN = self.run_number+1
-        self.TSTART = format_time(self.t_start)
+        # RN is printed as one-based while run_number is zero-based
+        self.order_vars['RN'] = self.run_number
+        self.print_vars['RN'] = self.run_number+1
+        self.order_vars['TSTART'] = self.t_start
+        self.print_vars['TSTART'] = format_time(self.t_start)
         if not self.t_end:
-            self.TFINISH = ''
-            self.TRUN = format_delta(now-self.t_start)
+            self.order_vars['TFINISH'] = None
+            self.print_vars['TFINISH'] = ''
+            self.order_vars['TRUN'] = now-self.t_start
+            self.print_vars['TRUN'] = format_delta(now-self.t_start)
         else:
-            self.TFINISH = format_time(self.t_end)
-            self.TRUN = format_delta(self.t_end-self.t_start)
+            self.order_vars['TFINISH'] = self.t_end
+            self.print_vars['TFINISH'] = format_time(self.t_end)
+            self.order_vars['TRUN'] = self.t_end-self.t_start
+            self.print_vars['TRUN'] = format_delta(self.t_end-self.t_start)
         if self.error:
-            self.E = 'E'
+            self.order_vars['E'] = True
+            self.print_vars['E'] = 'E'
         else:
-            self.E = ''
-        self.SPEC = self.subject.spec
+            self.order_vars['E'] = False
+            self.print_vars['E'] = ''
+        self.order_vars['SPEC'] = self.subject.spec
+        self.print_vars['SPEC'] = self.subject.spec
         return
 
     def read_log(self, fo):
@@ -215,6 +225,11 @@ class Run:
                 break
         return state
 
+def run_cmp(a, b):
+    """cmp() on runs, ordering by the field in args.order_field"""
+    field = args.order_field.upper().strip()
+    return cmp(a.order_vars[field], b.order_vars[field])
+
 # output field widths
 # this is also used to check for valid output fields
 field_widths = {'NR': 2, 
@@ -266,6 +281,8 @@ Output can be customized by a comma-separated list of fields:
 
     SPEC -- the subject specifier
 
+The same fields are options to the order option.
+
 """.format(progname=progname)
 
 def format_time(t):
@@ -296,6 +313,10 @@ parser.add_argument('-o', '--output',
                     dest='output_fields', 
                     default='NR,RN,TSTART,TFINISH,TRUN,E,SPEC', 
                     help='output fields')
+parser.add_argument('-O', '--order', 
+                    dest='order_field', 
+                    default='SPEC', 
+                    help='order field')
 parser.add_argument('--subjects-dir', '-S')
 parser.add_argument('subjects', 
                     nargs='*')
@@ -313,6 +334,11 @@ for field in args.output_fields.split(','):
         sys.stderr.write('%s: unknown output field "%s"\n' % (progname, field))
         sys.exit(1)
     output_fields.append(field)
+
+if args.order_field.upper().strip() not in field_widths:
+    fmt = '%s: unknown order field "%s"\n'
+    sys.stderr.write(fmt % (progname, args.order_field))
+    sys.exit(1)
 
 subjects_dir = args.subjects_dir
 if not subjects_dir and 'SUBJECTS_DIR' in os.environ:
@@ -362,14 +388,22 @@ if not subjects:
     sys.stderr.write('%s: no subjects found\n' % progname)
     sys.exit(1)
 
-subjects.sort(lambda a, b: cmp(a.spec, b.spec))
+runs = []
+for subject in subjects:
+    runs.append(subject[-1])
+
+if not runs:
+    sys.stderr.write('%s: no runs found\n' % progname)
+    sys.exit(1)
+
+runs.sort(run_cmp)
 
 headers = []
 fmts = []
 for field in output_fields:
     width = field_widths[field]
     headers.append(field.ljust(width))
-    fmts.append('{run.%s:%d}' % (field, width))
+    fmts.append('{%s:%d}' % (field, width))
 
 header = '  '.join(headers).strip()
 fmt = '  '.join(fmts).strip()
@@ -377,9 +411,8 @@ fmt = '  '.join(fmts).strip()
 if not args.suppress_header:
     print header
 
-for s in subjects:
-    run = s[-1]
-    print fmt.format(run=run).rstrip()
+for run in runs:
+    print fmt.format(**run.print_vars).rstrip()
 
 sys.exit(0)
 
