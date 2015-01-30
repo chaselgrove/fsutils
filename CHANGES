@@ -26,3 +26,7 @@ https://github.com/chaselgrove/fsutils
 0.2.0 -- 29 January 2015
 
     Added support for user-specified output fields.
+
+0.2.1 -- 30 January 2015
+
+    Added support for user-specified output ordering.
