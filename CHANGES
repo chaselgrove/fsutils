@@ -30,3 +30,12 @@ https://github.com/chaselgrove/fsutils
 0.2.1 -- 30 January 2015
 
     Added support for user-specified output ordering.
+
+0.2.2 -- 2 February 2015
+
+    Fixed a bug recording the error status in running cases.
+
+    Added R (running), SN (step number), STEPNAME, STEPTSTART, and STEPTRUN 
+    fields.
+
+    Added the dash flag for printing placeholders for empty values.

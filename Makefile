@@ -1,8 +1,8 @@
 default : build
 
-build : dist/fsutils-0.2.1.tar.gz
+build : dist/fsutils-0.2.2.tar.gz
 
-dist/fsutils-0.2.1.tar.gz : 
+dist/fsutils-0.2.2.tar.gz : 
 	python setup.py sdist
 
 register : 
