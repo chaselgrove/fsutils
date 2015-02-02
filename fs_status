@@ -126,6 +126,31 @@ class Run:
                 self.print_vars['E'] = '-'
             else:
                 self.print_vars['E'] = ''
+            if self.steps:
+                self.order_vars['SN'] = len(self.steps)
+                self.print_vars['SN'] = str(len(self.steps))
+                self.order_vars['STEPNAME'] = self.steps[-1]['name']
+                self.print_vars['STEPNAME'] = self.steps[-1]['name']
+                tstart = self.steps[-1]['tstart']
+                self.order_vars['STEPTSTART'] = tstart
+                self.print_vars['STEPTSTART'] = format_time(tstart)
+                self.order_vars['STEPTRUN'] = now-tstart
+                self.print_vars['STEPTRUN'] = format_delta(now-tstart)
+            else:
+                self.order_vars['SN'] = None
+                self.order_vars['STEPNAME'] = None
+                self.order_vars['STEPTSTART'] = None
+                self.order_vars['STEPTRUN'] = None
+                if args.dash:
+                    self.print_vars['SN'] = '-'
+                    self.print_vars['STEPNAME'] = '-'
+                    self.print_vars['STEPTSTART'] = '-'
+                    self.print_vars['STEPTRUN'] = '-'
+                else:
+                    self.print_vars['SN'] = ''
+                    self.print_vars['STEPNAME'] = ''
+                    self.print_vars['STEPTSTART'] = ''
+                    self.print_vars['STEPTRUN'] = ''
         else:
             self.order_vars['TFINISH'] = self.t_end
             self.print_vars['TFINISH'] = format_time(self.t_end)
@@ -145,6 +170,20 @@ class Run:
                     self.print_vars['E'] = '-'
                 else:
                     self.print_vars['E'] = ''
+            self.order_vars['SN'] = None
+            self.order_vars['STEPNAME'] = None
+            self.order_vars['STEPTSTART'] = None
+            self.order_vars['STEPTRUN'] = None
+            if args.dash:
+                self.print_vars['SN'] = '-'
+                self.print_vars['STEPNAME'] = '-'
+                self.print_vars['STEPTSTART'] = '-'
+                self.print_vars['STEPTRUN'] = '-'
+            else:
+                self.print_vars['SN'] = ''
+                self.print_vars['STEPNAME'] = ''
+                self.print_vars['STEPTSTART'] = ''
+                self.print_vars['STEPTRUN'] = ''
         self.order_vars['SPEC'] = self.subject.spec
         self.print_vars['SPEC'] = self.subject.spec
         return
@@ -227,7 +266,7 @@ class Run:
             if line.startswith('#@# '):
                 step = line[4:-28].strip()
                 t = dateutil.parser.parse(line[-28:])
-                self.steps.append((step, t))
+                self.steps.append({'name': step, 'tstart': t})
                 state = 'step'
                 continue
             # state == 'step'
@@ -257,7 +296,11 @@ field_widths = {'NR': 2,
                 'TRUN': 8, 
                 'E': 1, 
                 'R': 1, 
-                'SPEC': 8}
+                'SPEC': 8, 
+                'SN': 2, 
+                'STEPNAME': 34, 
+                'STEPTSTART': 19, 
+                'STEPTRUN': 8}
 
 progname = os.path.basename(sys.argv[0])
 
@@ -295,6 +338,14 @@ Output can be customized by a comma-separated list of fields:
     TFINISH -- the run end time
 
     TRUN -- the run time
+
+    SN -- the number of the running step
+
+    STEPNAME -- the name of the running step
+
+    STEPTSTART -- the start time of the running step
+
+    STEPTRUN -- the run time of the running step
 
     E -- 'E' if the run exited with errors
 
