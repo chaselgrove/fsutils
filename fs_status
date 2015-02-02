@@ -113,26 +113,38 @@ class Run:
         self.print_vars['TSTART'] = format_time(self.t_start)
         if not self.t_end:
             self.order_vars['TFINISH'] = None
-            self.print_vars['TFINISH'] = ''
+            if args.dash:
+                self.print_vars['TFINISH'] = '-          -'
+            else:
+                self.print_vars['TFINISH'] = ''
             self.order_vars['TRUN'] = now-self.t_start
             self.print_vars['TRUN'] = format_delta(now-self.t_start)
             self.order_vars['R'] = True
             self.print_vars['R'] = 'R'
             self.order_vars['E'] = None
-            self.print_vars['E'] = ''
+            if args.dash:
+                self.print_vars['E'] = '-'
+            else:
+                self.print_vars['E'] = ''
         else:
             self.order_vars['TFINISH'] = self.t_end
             self.print_vars['TFINISH'] = format_time(self.t_end)
             self.order_vars['TRUN'] = self.t_end-self.t_start
             self.print_vars['TRUN'] = format_delta(self.t_end-self.t_start)
             self.order_vars['R'] = False
-            self.print_vars['R'] = ''
+            if args.dash:
+                self.print_vars['R'] = '-'
+            else:
+                self.print_vars['R'] = ''
             if self.error:
                 self.order_vars['E'] = True
                 self.print_vars['E'] = 'E'
             else:
                 self.order_vars['E'] = False
-                self.print_vars['E'] = ''
+                if args.dash:
+                    self.print_vars['E'] = '-'
+                else:
+                    self.print_vars['E'] = ''
         self.order_vars['SPEC'] = self.subject.spec
         self.print_vars['SPEC'] = self.subject.spec
         return
@@ -326,6 +338,10 @@ parser.add_argument('-O', '--order',
                     dest='order_field', 
                     default='SPEC', 
                     help='order field')
+parser.add_argument('--dash', '-d', 
+                    default=False, 
+                    action='store_true', 
+                    help='print dashes for empty values')
 parser.add_argument('--subjects-dir', '-S')
 parser.add_argument('subjects', 
                     nargs='*')
