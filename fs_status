@@ -116,17 +116,19 @@ class Run:
             self.print_vars['TFINISH'] = ''
             self.order_vars['TRUN'] = now-self.t_start
             self.print_vars['TRUN'] = format_delta(now-self.t_start)
+            self.order_vars['E'] = None
+            self.print_vars['E'] = ''
         else:
             self.order_vars['TFINISH'] = self.t_end
             self.print_vars['TFINISH'] = format_time(self.t_end)
             self.order_vars['TRUN'] = self.t_end-self.t_start
             self.print_vars['TRUN'] = format_delta(self.t_end-self.t_start)
-        if self.error:
-            self.order_vars['E'] = True
-            self.print_vars['E'] = 'E'
-        else:
-            self.order_vars['E'] = False
-            self.print_vars['E'] = ''
+            if self.error:
+                self.order_vars['E'] = True
+                self.print_vars['E'] = 'E'
+            else:
+                self.order_vars['E'] = False
+                self.print_vars['E'] = ''
         self.order_vars['SPEC'] = self.subject.spec
         self.print_vars['SPEC'] = self.subject.spec
         return
