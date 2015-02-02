@@ -116,6 +116,8 @@ class Run:
             self.print_vars['TFINISH'] = ''
             self.order_vars['TRUN'] = now-self.t_start
             self.print_vars['TRUN'] = format_delta(now-self.t_start)
+            self.order_vars['R'] = True
+            self.print_vars['R'] = 'R'
             self.order_vars['E'] = None
             self.print_vars['E'] = ''
         else:
@@ -123,6 +125,8 @@ class Run:
             self.print_vars['TFINISH'] = format_time(self.t_end)
             self.order_vars['TRUN'] = self.t_end-self.t_start
             self.print_vars['TRUN'] = format_delta(self.t_end-self.t_start)
+            self.order_vars['R'] = False
+            self.print_vars['R'] = ''
             if self.error:
                 self.order_vars['E'] = True
                 self.print_vars['E'] = 'E'
@@ -240,6 +244,7 @@ field_widths = {'NR': 2,
                 'TFINISH': 19, 
                 'TRUN': 8, 
                 'E': 1, 
+                'R': 1, 
                 'SPEC': 8}
 
 progname = os.path.basename(sys.argv[0])
@@ -280,6 +285,8 @@ Output can be customized by a comma-separated list of fields:
     TRUN -- the run time
 
     E -- 'E' if the run exited with errors
+
+    R -- 'R' if the case is still running
 
     SPEC -- the subject specifier
 
