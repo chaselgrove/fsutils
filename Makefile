@@ -15,7 +15,7 @@ check :
 	python setup.py check
 
 clean : 
-	rm -f MANIFEST
+	rm -f MANIFEST fsutils/*.pyc
 
 clobber : clean
 	rm -rf dist
