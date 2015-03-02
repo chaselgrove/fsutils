@@ -395,6 +395,7 @@ parser.add_argument('--dash', '-d',
                     help='print dashes for empty values')
 parser.add_argument('--subjects-dir', '-S')
 parser.add_argument('subjects', 
+                    metavar='subject', 
                     nargs='*')
 
 args = parser.parse_args()
