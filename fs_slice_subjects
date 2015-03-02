@@ -16,9 +16,35 @@ description = """
 
 Create images for FreeSurfer subjects.
 
-all paths are relative (input/output to subject, color table to FS home)
+Specify the input volume, the output image, and an optional overlay volume 
+and color file.  Volumes must be 256x256x256 and have type uint8.
 
-"""
+Subjects may be given on the command line; if none are given, all subjects in 
+the specified subjects directory are processed.
+
+Input and overlay volumes are found in the mri directory for each subject, 
+and output images are written to the qa directory for each subject (this 
+directory is created if it does not exist).
+
+If an overlay is given, {progname} first looks for the color file under 
+$FREESURFER_HOME, then as an unedited path.
+
+Examples:
+
+    {progname} -i T1.mgz -o t1.png -S study2
+
+Slices mri/T1.mgz for all the subjects in study2/ and writes the images 
+to qa/t1.png.
+
+    {progname} -i orig.mgz 
+        -o aseg.png 
+        -O aseg.mgz FreeSurferColorLUT.txt 
+        bert ernie
+
+Slices mri/orig.mgz, overlays mri/aseg.mgz, and writes the result to 
+qa/aseg.png for subjects bert and ernie in $SUBJECTS_DIR.
+
+""".format(progname=progname)
 
 parser = argparse.ArgumentParser(description=description, 
                                  formatter_class=argparse.RawTextHelpFormatter)
@@ -30,6 +56,7 @@ parser.add_argument('-v', '--version',
                     help='show version and exit')
 parser.add_argument('--overlay', '-O',
                     nargs=2,
+                    metavar=('OVERLAY', 'COLOR_FILE'), 
                     help='overlay volume and color table')
 parser.add_argument('--input', '-i', 
                     required=True)

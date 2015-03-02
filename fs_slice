@@ -16,13 +16,18 @@ description = """
 
 Create images from FreeSurfer volumes.
 
-<subject> <vol> [-segmentation vol colors] <output>
-<volume> [] <output>
+Specify the input volume, the output image, and an optional overlay volume 
+and color file.  Volumes must be 256x256x256 and have type uint8.
 
-give subjects
+Examples:
 
-radiological (for well-behaved .mgzs)
-"""
+    {progname} T1.mgz t1.png
+
+    {progname} orig.mgz 
+        -O aseg.mgz $FREESURFER_HOME/FreeSurferColorLUT.txt 
+        aseg.png
+
+""".format(progname=progname)
 
 parser = argparse.ArgumentParser(description=description, 
                                  formatter_class=argparse.RawTextHelpFormatter)
@@ -34,6 +39,7 @@ parser.add_argument('-v', '--version',
                     help='show version and exit')
 parser.add_argument('--overlay', '-O', 
                     nargs=2, 
+                    metavar=('OVERLAY', 'COLOR_FILE'), 
                     help='overlay volume and color table')
 parser.add_argument('input')
 parser.add_argument('output')
