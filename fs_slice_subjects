@@ -1,0 +1,130 @@
+#!/usr/bin/python
+
+# See file COPYING distributed with fsutils for copyright and license.
+
+import sys
+import os
+import argparse
+import nibabel
+import fsutils
+
+version = '0.1.0'
+
+progname = os.path.basename(sys.argv[0])
+
+description = """
+
+Create images for FreeSurfer subjects.
+
+all paths are relative (input/output to subject, color table to FS home)
+
+"""
+
+parser = argparse.ArgumentParser(description=description, 
+                                 formatter_class=argparse.RawTextHelpFormatter)
+
+parser.add_argument('-v', '--version', 
+                    default=False, 
+                    action='store_true', 
+                    dest='version', 
+                    help='show version and exit')
+parser.add_argument('--overlay', '-O',
+                    nargs=2,
+                    help='overlay volume and color table')
+parser.add_argument('--input', '-i', 
+                    required=True)
+parser.add_argument('--output', '-o', 
+                    required=True)
+parser.add_argument('--subjects-dir', '-S')
+parser.add_argument('subjects', 
+                    metavar='subject', 
+                    nargs='*')
+
+args = parser.parse_args()
+
+if args.version:
+    print '%s %s' % (progname, version)
+    sys.exit(0)
+
+subjects_dir = args.subjects_dir
+if not subjects_dir and 'SUBJECTS_DIR' in os.environ:
+    subjects_dir = os.environ['SUBJECTS_DIR']
+
+if not subjects_dir:
+    parser.print_usage(sys.stderr)
+    fmt = '%s: error: no subjects directory or subjects given\n'
+    sys.stderr.write(fmt % progname)
+    sys.exit(2)
+
+subjects = []
+if args.subjects:
+    subjects = list(args.subjects)
+else:
+    if not os.path.isdir(subjects_dir):
+        msg = '%s: %s is not a directory\n' % (progname, subjects_dir)
+        sys.stderr.write(msg)
+        sys.exit(1)
+    for path in os.listdir(subjects_dir):
+        full_path = os.path.join(subjects_dir, path)
+        if os.path.isdir(full_path):
+            subjects.append(path)
+
+palette = None
+overlay_spec = None
+if args.overlay:
+    (overlay_spec, palette_spec) = args.overlay
+    if 'FREESURFER_HOME' in os.environ:
+        palette_fname = os.path.join(os.environ['FREESURFER_HOME'], 
+                                     palette_spec)
+        try:
+            palette = fsutils.read_color_palette(palette_fname)
+        except:
+            print 'can\'t find %s in FREESURFER_HOME' % palette_spec
+        else:
+            print 'read %s in FREESURFER_HOME' % palette_spec
+    if not palette:
+        try:
+            palette = fsutils.read_color_palette(palette_spec)
+        except:
+            print 'can\'t find %s' % palette_spec
+        else:
+            print 'read %s' % palette_spec
+    if not palette:
+        msg = '%s: can\'t find color file %s\n' % (progname, palette_spec)
+        sys.stderr.write(msg)
+        sys.exit(1)
+
+error_flag = False
+
+for subject in subjects:
+    print subject
+    try:
+        in_fname = os.path.join(subjects_dir, subject, 'mri', args.input)
+        base_vol = nibabel.load(in_fname)
+        if overlay_spec:
+            overlay_fname = os.path.join(subjects_dir, 
+                                         subject, 
+                                         'mri', 
+                                         overlay_spec)
+            overlay_vol = nibabel.load(overlay_fname)
+        if not overlay_spec:
+            im = fsutils.slice(base_vol)
+        else:
+            im = fsutils.slice(base_vol, (overlay_vol, palette))
+        qa_dir = os.path.join(subjects_dir, subject, 'qa')
+        if not os.path.exists(qa_dir):
+            os.mkdir(qa_dir)
+        out_fname = os.path.join(qa_dir, args.output)
+        im.save(out_fname)
+    except Exception, data:
+        msg = 'error: %s\n' % str(data)
+        sys.stderr.write(msg)
+        error_flag = True
+
+if error_flag:
+    print 'errors in one or more subjects'
+    sys.exit(1)
+
+sys.exit(0)
+
+# eof

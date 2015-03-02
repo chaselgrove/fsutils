@@ -1,0 +1,79 @@
+#!/usr/bin/python
+
+# See file COPYING distributed with fsutils for copyright and license.
+
+import sys
+import os
+import argparse
+import nibabel
+import fsutils
+
+version = '0.1.0'
+
+progname = os.path.basename(sys.argv[0])
+
+description = """
+
+Create images from FreeSurfer volumes.
+
+<subject> <vol> [-segmentation vol colors] <output>
+<volume> [] <output>
+
+give subjects
+
+radiological (for well-behaved .mgzs)
+"""
+
+parser = argparse.ArgumentParser(description=description, 
+                                 formatter_class=argparse.RawTextHelpFormatter)
+
+parser.add_argument('-v', '--version', 
+                    default=False, 
+                    action='store_true', 
+                    dest='version', 
+                    help='show version and exit')
+parser.add_argument('--overlay', '-O', 
+                    nargs=2, 
+                    help='overlay volume and color table')
+parser.add_argument('input')
+parser.add_argument('output')
+
+args = parser.parse_args()
+
+if args.version:
+    print '%s %s' % (progname, version)
+    sys.exit(0)
+
+try:
+    print 'reading %s...' % args.input
+    base_vol = nibabel.load(args.input)
+except IOError, data:
+    sys.stderr.write('%s: %s: %s\n' % (progname, args.input, data.strerror))
+    sys.exit(1)
+
+if args.overlay:
+    try:
+        print 'reading %s...' % args.overlay[0]
+        overlay_vol = nibabel.load(args.overlay[0])
+    except IOError, data:
+        msg = '%s: %s: %s\n' % (progname, args.overlay[0], data.strerror)
+        sys.stderr.write(msg)
+        sys.exit(1)
+    print 'reading %s...' % args.overlay[1]
+    try:
+        palette = fsutils.read_color_palette(args.overlay[1])
+    except IOError, data:
+        msg = '%s: %s: %s\n' % (progname, args.overlay[1], data.strerror)
+        sys.stderr.write(msg)
+        sys.exit(1)
+
+if not args.overlay:
+    im = fsutils.slice(base_vol)
+else:
+    im = fsutils.slice(base_vol, (overlay_vol, palette))
+
+im.save(args.output)
+
+sys.exit(0)
+
+# eof
