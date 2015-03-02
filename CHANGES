@@ -67,3 +67,13 @@ https://github.com/chaselgrove/fsutils
     fs_status:
 
         Fixed help string.
+
+0.3.1 -- 2 March 2015
+
+    fs_slice:
+
+        Fixed version printing bug.
+
+    fs_slice_subjects:
+
+        Fixed version printing bug.

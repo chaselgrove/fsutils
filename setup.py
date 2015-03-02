@@ -5,7 +5,7 @@ from distutils.core import setup
 long_description = open('README.rst').read()
 
 setup(name='fsutils', 
-      version='0.3.0', 
+      version='0.3.1', 
       description='Utilities for working with FreeSurfer data', 
       author='Christian Haselgrove', 
       author_email='christian.haselgrove@umassmed.edu', 
