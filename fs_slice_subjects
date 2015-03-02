@@ -8,7 +8,7 @@ import argparse
 import nibabel
 import fsutils
 
-version = '0.1.0'
+version = '0.1.1'
 
 progname = os.path.basename(sys.argv[0])
 
@@ -51,8 +51,8 @@ parser = argparse.ArgumentParser(description=description,
 
 parser.add_argument('-v', '--version', 
                     default=False, 
-                    action='store_true', 
-                    dest='version', 
+                    action='version', 
+                    version='%s %s' % (progname, version), 
                     help='show version and exit')
 parser.add_argument('--overlay', '-O',
                     nargs=2,
@@ -68,10 +68,6 @@ parser.add_argument('subjects',
                     nargs='*')
 
 args = parser.parse_args()
-
-if args.version:
-    print '%s %s' % (progname, version)
-    sys.exit(0)
 
 subjects_dir = args.subjects_dir
 if not subjects_dir and 'SUBJECTS_DIR' in os.environ:
