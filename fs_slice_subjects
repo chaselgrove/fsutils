@@ -8,7 +8,7 @@ import argparse
 import nibabel
 import fsutils
 
-version = '0.1.1'
+version = '0.1.2'
 
 progname = os.path.basename(sys.argv[0])
 
@@ -54,6 +54,10 @@ parser.add_argument('-v', '--version',
                     action='version', 
                     version='%s %s' % (progname, version), 
                     help='show version and exit')
+parser.add_argument('--force', '-f', 
+                    default=False, 
+                    action='store_true', 
+                    help='force overwrite')
 parser.add_argument('--overlay', '-O',
                     nargs=2,
                     metavar=('OVERLAY', 'COLOR_FILE'), 
@@ -120,6 +124,11 @@ if args.overlay:
 error_flag = False
 
 for subject in subjects:
+    qa_dir = os.path.join(subjects_dir, subject, 'qa')
+    out_fname = os.path.join(qa_dir, args.output)
+    if not args.force and os.path.exists(out_fname):
+        print '%s: %s exists' % (subject, args.output)
+        continue
     print subject
     try:
         in_fname = os.path.join(subjects_dir, subject, 'mri', args.input)
@@ -134,10 +143,8 @@ for subject in subjects:
             im = fsutils.slice(base_vol)
         else:
             im = fsutils.slice(base_vol, (overlay_vol, palette))
-        qa_dir = os.path.join(subjects_dir, subject, 'qa')
         if not os.path.exists(qa_dir):
             os.mkdir(qa_dir)
-        out_fname = os.path.join(qa_dir, args.output)
         im.save(out_fname)
     except Exception, data:
         msg = 'error: %s\n' % str(data)

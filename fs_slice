@@ -8,7 +8,7 @@ import argparse
 import nibabel
 import fsutils
 
-version = '0.1.1'
+version = '0.1.2'
 
 progname = os.path.basename(sys.argv[0])
 
@@ -37,6 +37,10 @@ parser.add_argument('-v', '--version',
                     action='version', 
                     version='%s %s' % (progname, version), 
                     help='show version and exit')
+parser.add_argument('--force', '-f', 
+                    default=False, 
+                    action='store_true', 
+                    help='force overwrite')
 parser.add_argument('--overlay', '-O', 
                     nargs=2, 
                     metavar=('OVERLAY', 'COLOR_FILE'), 
@@ -45,6 +49,10 @@ parser.add_argument('input')
 parser.add_argument('output')
 
 args = parser.parse_args()
+
+if not args.force and os.path.exists(args.output):
+    sys.stderr.write('%s: %s exists\n' % (progname, args.output))
+    sys.exit(1)
 
 try:
     print 'reading %s...' % args.input
