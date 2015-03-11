@@ -77,3 +77,11 @@ https://github.com/chaselgrove/fsutils
     fs_slice_subjects:
 
         Fixed version printing bug.
+
+0.3.2 -- 11 March 2015
+
+    fs_slice and fs_slice_subjects:
+
+        Defaulting to not overwriting output files.
+
+        Added -f/--force flags.
