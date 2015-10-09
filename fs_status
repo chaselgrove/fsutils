@@ -393,6 +393,10 @@ parser.add_argument('--dash', '-d',
                     default=False, 
                     action='store_true', 
                     help='print dashes for empty values')
+parser.add_argument('--long', '-l', 
+                    default=False, 
+                    action='store_true', 
+                    help='print a long listing (one field per line)')
 parser.add_argument('--subjects-dir', '-S')
 parser.add_argument('subjects', 
                     metavar='subject', 
@@ -475,21 +479,29 @@ if not runs:
 
 runs.sort(run_cmp)
 
-headers = []
-fmts = []
-for field in output_fields:
-    width = field_widths[field]
-    headers.append(field.ljust(width))
-    fmts.append('{%s:%d}' % (field, width))
+if args.long:
 
-header = '  '.join(headers).strip()
-fmt = '  '.join(fmts).strip()
+    for run in runs:
+        for field in output_fields:
+            print '%s: %s' % (field, run.print_vars[field])
+        print
 
-if not args.suppress_header:
-    print header
+else:
 
-for run in runs:
-    print fmt.format(**run.print_vars).rstrip()
+    headers = []
+    fmts = []
+    for field in output_fields:
+        width = field_widths[field]
+        headers.append(field.ljust(width))
+        fmts.append('{%s:%d}' % (field, width))
+
+    header = '  '.join(headers).strip()
+    fmt = '  '.join(fmts).strip()
+
+    if not args.suppress_header:
+        print header
+    for run in runs:
+        print fmt.format(**run.print_vars).rstrip()
 
 sys.exit(0)
 
