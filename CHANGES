@@ -85,3 +85,13 @@ https://github.com/chaselgrove/fsutils
         Defaulting to not overwriting output files.
 
         Added -f/--force flags.
+
+0.4.0 -- 13 October 2015
+
+    fs_status (version 0.3.0):
+
+        Added long listing.
+
+        Supporting selecting run numbers.
+
+        Supporting multi-field ordering.
