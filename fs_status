@@ -433,7 +433,7 @@ if args.order_field.upper().strip() not in field_widths:
     sys.exit(1)
 
 if args.run is None:
-    run = -1
+    run = 'last'
 elif args.run == 'all':
     run = 'all'
 else:
@@ -498,6 +498,8 @@ runs = []
 for subject in subjects:
     if run == 'all':
         runs.extend(subject)
+    elif run == 'last':
+        runs.append(subject[-1])
     else:
         try:
             runs.append(subject[run-1])
