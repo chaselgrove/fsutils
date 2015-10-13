@@ -288,9 +288,12 @@ class Run:
         return state
 
 def run_cmp(a, b):
-    """cmp() on runs, ordering by the field in args.order_field"""
-    field = args.order_field.upper().strip()
-    return cmp(a.order_vars[field], b.order_vars[field])
+    """cmp() on runs, ordering by the fields in order_fields"""
+    for field in order_fields:
+        c = cmp(a.order_vars[field], b.order_vars[field])
+        if c != 0:
+            return c
+    return 0
 
 # output field widths
 # this is also used to check for valid output fields
@@ -358,7 +361,8 @@ Output can be customized by a comma-separated list of fields:
 
     SPEC -- the subject specifier
 
-The same fields are options to the order option.
+Reporting order can be customized by a comma-separated list of the same 
+fields.
 
 The run number to be reported on can be specified using the -r option and 
 defaults to the last run.  Use "-r all" to report on all runs.
@@ -394,9 +398,9 @@ parser.add_argument('-o', '--output',
                     default='NR,RN,TSTART,TFINISH,TRUN,E,SPEC', 
                     help='output fields')
 parser.add_argument('-O', '--order', 
-                    dest='order_field', 
-                    default='SPEC', 
-                    help='order field')
+                    dest='order_fields', 
+                    default='SPEC,RN', 
+                    help='order fields')
 parser.add_argument('--dash', '-d', 
                     default=False, 
                     action='store_true', 
@@ -427,10 +431,13 @@ for field in args.output_fields.split(','):
         sys.exit(1)
     output_fields.append(field)
 
-if args.order_field.upper().strip() not in field_widths:
-    fmt = '%s: unknown order field "%s"\n'
-    sys.stderr.write(fmt % (progname, args.order_field))
-    sys.exit(1)
+order_fields = []
+for field in args.order_fields.split(','):
+    field = field.upper().strip()
+    if field not in field_widths:
+        sys.stderr.write('%s: unknown order field "%s"\n' % (progname, field))
+        sys.exit(1)
+    order_fields.append(field)
 
 if args.run is None:
     run = 'last'
