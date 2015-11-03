@@ -110,6 +110,12 @@ class Run:
             raise NoRunError()
         self.print_vars = {}
         self.order_vars = {}
+        self.print_vars['BUILD'] = self.build_stamp
+        self.order_vars['BUILD'] = self.build_stamp
+        self.print_vars['UNAME'] = self.uname
+        self.order_vars['UNAME'] = self.uname
+        self.print_vars['ARGS'] = self.args
+        self.order_vars['ARGS'] = self.args
         # NR is set by the subject object
         # RN is printed as one-based while run_number is zero-based
         self.order_vars['RN'] = self.run_number
@@ -254,6 +260,8 @@ class Run:
                     self.freesurfer_home = headers[6]
                     self.actual_freesurfer_home = headers[7]
                     self.build_stamp = headers[8]
+                    if self.build_stamp.startswith('build-stamp.txt: '):
+                        self.build_stamp = self.build_stamp[17:]
                     self.uname = headers[9]
                 continue
             if state == 'post-header':
@@ -295,20 +303,9 @@ def run_cmp(a, b):
             return c
     return 0
 
-# output field widths
-# this is also used to check for valid output fields
-field_widths = {'NR': 2, 
-                'RN': 2, 
-                'TSTART': 19, 
-                'TFINISH': 19, 
-                'TRUN': 8, 
-                'E': 1, 
-                'R': 1, 
-                'SPEC': 8, 
-                'SN': 2, 
-                'STEPNAME': 34, 
-                'STEPTSTART': 19, 
-                'STEPTRUN': 8}
+# available output fields
+fields = ('BUILD', 'UNAME', 'ARGS', 'NR', 'RN', 'TSTART', 'TFINISH', 'TRUN', 
+          'E', 'R', 'SPEC', 'SN', 'STEPNAME', 'STEPTSTART', 'STEPTRUN')
 
 progname = os.path.basename(sys.argv[0])
 
@@ -336,6 +333,12 @@ Examples:
         the subject in S001 and the subject described by /tmp/recon-all.log
 
 Output can be customized by a comma-separated list of fields:
+
+    BUILD -- the FreeSurfer build stamp
+
+    UNAME -- the uname -a report
+
+    ARGS -- the run arguments
 
     NR -- number of runs
 
@@ -426,7 +429,7 @@ if args.version:
 output_fields = []
 for field in args.output_fields.split(','):
     field = field.upper().strip()
-    if field not in field_widths:
+    if field not in fields:
         sys.stderr.write('%s: unknown output field "%s"\n' % (progname, field))
         sys.exit(1)
     output_fields.append(field)
@@ -434,7 +437,7 @@ for field in args.output_fields.split(','):
 order_fields = []
 for field in args.order_fields.split(','):
     field = field.upper().strip()
-    if field not in field_widths:
+    if field not in fields:
         sys.stderr.write('%s: unknown order field "%s"\n' % (progname, field))
         sys.exit(1)
     order_fields.append(field)
@@ -532,7 +535,10 @@ else:
     headers = []
     fmts = []
     for field in output_fields:
-        width = field_widths[field]
+        widths = [ len(field) ]
+        for run in runs:
+            widths.append(len('{0}'.format(run.print_vars[field])))
+        width = max(widths)
         headers.append(field.ljust(width))
         fmts.append('{%s:%d}' % (field, width))
 
