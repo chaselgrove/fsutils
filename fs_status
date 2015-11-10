@@ -5,18 +5,9 @@
 import sys
 import os
 import argparse
-import dateutil
 import fsutils.logs
 
 version = '0.3.1'
-
-def run_cmp(a, b):
-    """cmp() on runs, ordering by the fields in order_fields"""
-    for field in order_fields:
-        c = cmp(a.order_vars[field], b.order_vars[field])
-        if c != 0:
-            return c
-    return 0
 
 # available output fields
 fields = ('BUILD', 'UNAME', 'ARGS', 'NR', 'RN', 'TSTART', 'TFINISH', 'TRUN', 
@@ -79,13 +70,88 @@ Output can be customized by a comma-separated list of fields:
 
     SPEC -- the subject specifier
 
-Reporting order can be customized by a comma-separated list of the same 
-fields.
+Reporting order is customized by a comma-separated list of the same fields.
 
 The run number to be reported on can be specified using the -r option and 
 defaults to the last run.  Use "-r all" to report on all runs.
 
 """.format(progname=progname)
+
+class DisplayRun:
+
+    """runs with order and print variables"""
+
+    def __init__(self, run, dash_flag):
+        self.order_vars = {'BUILD': run.build_stamp, 
+                           'UNAME': run.uname, 
+                           'ARGS': run.args, 
+                           'NR': len(run.subject.runs), 
+                           'SPEC': run.subject.spec, 
+                           'RN': run.run_number, 
+                           'TSTART': run.t_start, 
+                           'TFINISH': run.t_end, 
+                           'TRUN': run.t_run, 
+                           'R': run.is_running, 
+                           'E': run.error, 
+                           'SN': run.step_number, 
+                           'STEPNAME': run.step_name, 
+                           'STEPTSTART': run.step_t_start, 
+                           'STEPTRUN': run.step_t_run}
+        self.print_vars = dict(self.order_vars)
+        self.print_vars['TSTART'] = format_time(run.t_start)
+        self.print_vars['TRUN'] = format_delta(run.t_run)
+        if run.is_running:
+            self.print_vars['R'] = 'R'
+            self.print_vars['STEPTSTART'] = format_time(run.step_t_start)
+            self.print_vars['STEPTRUN'] = format_delta(run.step_t_run)
+            if dash_flag:
+                self.print_vars['TFINISH'] = '-          -'
+                self.print_vars['E'] = '-'
+            else:
+                self.print_vars['TFINISH'] = ''
+                self.print_vars['E'] = ''
+        else:
+            self.print_vars['TFINISH'] = format_time(run.t_end)
+            if dash_flag:
+                if run.error:
+                    self.print_vars['E'] = 'E'
+                else:
+                    self.print_vars['E'] = '-'
+                self.print_vars['R'] = '-'
+                self.print_vars['SN'] = '-'
+                self.print_vars['STEPNAME'] = '-'
+                self.print_vars['STEPTSTART'] = '-'
+                self.print_vars['STEPTRUN'] = '-'
+            else:
+                if run.error:
+                    self.print_vars['E'] = 'E'
+                else:
+                    self.print_vars['E'] = ''
+                self.print_vars['R'] = ''
+                self.print_vars['SN'] = ''
+                self.print_vars['STEPNAME'] = ''
+                self.print_vars['STEPTSTART'] = ''
+                self.print_vars['STEPTRUN'] = ''
+        return
+
+def run_cmp(a, b):
+    """cmp() on runs, ordering by the fields in order_fields"""
+    for field in order_fields:
+        c = cmp(a.order_vars[field], b.order_vars[field])
+        if c != 0:
+            return c
+    return 0
+
+def format_time(t):
+    return t.strftime('%Y-%m-%d %H:%M:%S')
+
+def format_delta(d):
+    s = d.seconds % 60
+    minutes = d.seconds / 60
+    m = minutes % 60
+    hours = minutes / 60
+    h = 24 * d.days + hours
+    return '%02d:%02d:%02d' % (h, m, s)
 
 parser = argparse.ArgumentParser(description=description, 
                                  formatter_class=argparse.RawTextHelpFormatter)
@@ -174,7 +240,7 @@ if not subjects_dir:
         sys.exit(2)
     for spec in args.subjects:
         try:
-            subjects.append(fsutils.logs.Subject(spec, args.dash))
+            subjects.append(fsutils.logs.Subject(spec))
         except fsutils.logs.LogError, data:
             sys.stderr.write('%s: %s: %s\n' % (progname, spec, str(data)))
 else:
@@ -186,7 +252,6 @@ else:
         for subject in os.listdir(subjects_dir):
             try:
                 subjects.append(fsutils.logs.Subject(subject, 
-                                                     args.dash, 
                                                      subjects_dir=subjects_dir))
             except fsutils.logs.SubjectError:
                 # subjects directory given but no specific subjects given 
@@ -200,7 +265,6 @@ else:
         for subject in args.subjects:
             try:
                 subjects.append(fsutils.logs.Subject(subject, 
-                                                     args.dash, 
                                                      subjects_dir=subjects_dir))
             except fsutils.logs.LogError, data:
                 msg = '%s: %s: %s\n' % (progname, subject, str(data))
@@ -227,11 +291,15 @@ if not runs:
     sys.stderr.write('%s: no runs found\n' % progname)
     sys.exit(1)
 
-runs.sort(run_cmp)
+display_runs = []
+for run in runs:
+    display_runs.append(DisplayRun(run, args.dash))
+
+display_runs.sort(run_cmp)
 
 if args.long:
 
-    for run in runs:
+    for run in display_runs:
         for field in output_fields:
             print '%s: %s' % (field, run.print_vars[field])
         print
@@ -242,7 +310,7 @@ else:
     fmts = []
     for field in output_fields:
         widths = [ len(field) ]
-        for run in runs:
+        for run in display_runs:
             widths.append(len('{0}'.format(run.print_vars[field])))
         width = max(widths)
         headers.append(field.ljust(width))
@@ -253,7 +321,7 @@ else:
 
     if not args.suppress_header:
         print header
-    for run in runs:
+    for run in display_runs:
         print fmt.format(**run.print_vars).rstrip()
 
 sys.exit(0)

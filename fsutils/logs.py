@@ -6,8 +6,6 @@ import os
 import datetime
 import dateutil.parser
 
-now = datetime.datetime.now(dateutil.tz.tzlocal())
-
 class LogError(Exception):
 
     """base class for exceptions"""
@@ -39,10 +37,9 @@ class LogError(LogError):
 
 class Subject:
 
-    def __init__(self, spec, print_dash_flag, subjects_dir=None):
+    def __init__(self, spec, subjects_dir=None):
         self.subjects_dir = subjects_dir
         self.spec = spec
-        self.print_dash_flag = print_dash_flag
         if not self.subjects_dir or '/' in spec:
             self._init_from_path(self.spec)
         else:
@@ -81,7 +78,7 @@ class Subject:
         with open(path) as fo:
             while True:
                 try:
-                    run = Run(self, len(self.runs), fo, self.print_dash_flag)
+                    run = Run(self, len(self.runs)+1, fo)
                 except NoRunError:
                     break
                 except Exception:
@@ -92,110 +89,19 @@ class Subject:
                     self.runs.append(run)
         if not self.runs:
             raise SubjectError('no runs found')
-        for run in self.runs:
-            run.order_vars['NR'] = len(self.runs)
-            run.print_vars['NR'] = len(self.runs)
         return
 
 class Run:
 
-    def __init__(self, subject, run_number, fo, print_dash_flag):
+    def __init__(self, subject, run_number, fo):
         self.subject = subject
         self.run_number = run_number
         self.t_end = None
         self.steps = []
+        self.error = False
         end_state = self.read_log(fo)
         if end_state == 'start':
             raise NoRunError()
-        self.print_vars = {}
-        self.order_vars = {}
-        self.print_vars['BUILD'] = self.build_stamp
-        self.order_vars['BUILD'] = self.build_stamp
-        self.print_vars['UNAME'] = self.uname
-        self.order_vars['UNAME'] = self.uname
-        self.print_vars['ARGS'] = self.args
-        self.order_vars['ARGS'] = self.args
-        # NR is set by the subject object
-        # RN is printed as one-based while run_number is zero-based
-        self.order_vars['RN'] = self.run_number
-        self.print_vars['RN'] = self.run_number+1
-        self.order_vars['TSTART'] = self.t_start
-        self.print_vars['TSTART'] = format_time(self.t_start)
-        if not self.t_end:
-            self.order_vars['TFINISH'] = None
-            if print_dash_flag:
-                self.print_vars['TFINISH'] = '-          -'
-            else:
-                self.print_vars['TFINISH'] = ''
-            self.order_vars['TRUN'] = now-self.t_start
-            self.print_vars['TRUN'] = format_delta(now-self.t_start)
-            self.order_vars['R'] = True
-            self.print_vars['R'] = 'R'
-            self.order_vars['E'] = None
-            if print_dash_flag:
-                self.print_vars['E'] = '-'
-            else:
-                self.print_vars['E'] = ''
-            if self.steps:
-                self.order_vars['SN'] = len(self.steps)
-                self.print_vars['SN'] = str(len(self.steps))
-                self.order_vars['STEPNAME'] = self.steps[-1]['name']
-                self.print_vars['STEPNAME'] = self.steps[-1]['name']
-                tstart = self.steps[-1]['tstart']
-                self.order_vars['STEPTSTART'] = tstart
-                self.print_vars['STEPTSTART'] = format_time(tstart)
-                self.order_vars['STEPTRUN'] = now-tstart
-                self.print_vars['STEPTRUN'] = format_delta(now-tstart)
-            else:
-                self.order_vars['SN'] = None
-                self.order_vars['STEPNAME'] = None
-                self.order_vars['STEPTSTART'] = None
-                self.order_vars['STEPTRUN'] = None
-                if print_dash_flag:
-                    self.print_vars['SN'] = '-'
-                    self.print_vars['STEPNAME'] = '-'
-                    self.print_vars['STEPTSTART'] = '-'
-                    self.print_vars['STEPTRUN'] = '-'
-                else:
-                    self.print_vars['SN'] = ''
-                    self.print_vars['STEPNAME'] = ''
-                    self.print_vars['STEPTSTART'] = ''
-                    self.print_vars['STEPTRUN'] = ''
-        else:
-            self.order_vars['TFINISH'] = self.t_end
-            self.print_vars['TFINISH'] = format_time(self.t_end)
-            self.order_vars['TRUN'] = self.t_end-self.t_start
-            self.print_vars['TRUN'] = format_delta(self.t_end-self.t_start)
-            self.order_vars['R'] = False
-            if print_dash_flag:
-                self.print_vars['R'] = '-'
-            else:
-                self.print_vars['R'] = ''
-            if self.error:
-                self.order_vars['E'] = True
-                self.print_vars['E'] = 'E'
-            else:
-                self.order_vars['E'] = False
-                if print_dash_flag:
-                    self.print_vars['E'] = '-'
-                else:
-                    self.print_vars['E'] = ''
-            self.order_vars['SN'] = None
-            self.order_vars['STEPNAME'] = None
-            self.order_vars['STEPTSTART'] = None
-            self.order_vars['STEPTRUN'] = None
-            if print_dash_flag:
-                self.print_vars['SN'] = '-'
-                self.print_vars['STEPNAME'] = '-'
-                self.print_vars['STEPTSTART'] = '-'
-                self.print_vars['STEPTRUN'] = '-'
-            else:
-                self.print_vars['SN'] = ''
-                self.print_vars['STEPNAME'] = ''
-                self.print_vars['STEPTSTART'] = ''
-                self.print_vars['STEPTRUN'] = ''
-        self.order_vars['SPEC'] = self.subject.spec
-        self.print_vars['SPEC'] = self.subject.spec
         return
 
     def read_log(self, fo):
@@ -294,15 +200,43 @@ class Run:
                 break
         return state
 
-def format_time(t):
-    return t.strftime('%Y-%m-%d %H:%M:%S')
+    @property
+    def is_running(self):
+        if self.t_end:
+            return False
+        return True
 
-def format_delta(d):
-    s = d.seconds % 60
-    minutes = d.seconds / 60
-    m = minutes % 60
-    hours = minutes / 60
-    h = 24 * d.days + hours
-    return '%02d:%02d:%02d' % (h, m, s)
+    @property
+    def t_run(self):
+        if self.is_running:
+            return now() - self.t_start
+        return self.t_end - self.t_start
+
+    @property
+    def step_number(self):
+        if not self.is_running or not self.steps:
+            return None
+        return len(self.steps)
+
+    @property
+    def step_name(self):
+        if not self.is_running or not self.steps:
+            return None
+        return self.steps[-1]['name']
+
+    @property
+    def step_t_start(self):
+        if not self.is_running or not self.steps:
+            return None
+        return self.steps[-1]['tstart']
+
+    @property
+    def step_t_run(self):
+        if not self.is_running or not self.steps:
+            return None
+        return now() - self.step_t_start
+
+def now():
+    return datetime.datetime.now(dateutil.tz.tzlocal())
 
 # eof
