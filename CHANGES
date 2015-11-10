@@ -103,3 +103,15 @@ https://github.com/chaselgrove/fsutils
         Added BUILD, UNAME, and ARGS fields.
 
         Making field widths flexible.
+
+0.5.0 -- 10 November 2015
+
+    Added fsutils.logs for log reading.
+
+    Removed traceback printing on log read error.
+
+    Fixed bug reading logs with -qcache runs.
+
+    fs_status (version 0.3.2):
+
+        Moved log reading from fs_status to fsutils.logs.
