@@ -180,6 +180,11 @@ class Run:
                     state = 'versions block'
                 continue
             if line.startswith('#@# '):
+                if line.endswith(' --------------'):
+                    if self.steps[-1]['name'].startswith('Qdec Cache'):
+                        # this is a status line from mris_preproc, so we 
+                        # skip it here
+                        continue
                 step = line[4:-28].strip()
                 t = dateutil.parser.parse(line[-28:])
                 self.steps.append({'name': step, 'tstart': t})
