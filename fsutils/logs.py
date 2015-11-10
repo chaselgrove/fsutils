@@ -82,8 +82,6 @@ class Subject:
                 except NoRunError:
                     break
                 except Exception:
-                    import traceback
-                    traceback.print_exc()
                     raise LogError('error parsing log file')
                 else:
                     self.runs.append(run)
