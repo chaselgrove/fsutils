@@ -2,7 +2,9 @@
 
 """log file parsing"""
 
+import sys
 import os
+import traceback
 import datetime
 import dateutil.parser
 
@@ -37,9 +39,10 @@ class LogError(LogError):
 
 class Subject:
 
-    def __init__(self, spec, subjects_dir=None):
+    def __init__(self, spec, subjects_dir=None, debug=False):
         self.subjects_dir = subjects_dir
         self.spec = spec
+        self.debug = debug
         if not self.subjects_dir or '/' in spec:
             self._init_from_path(self.spec)
         else:
@@ -78,10 +81,12 @@ class Subject:
         with open(path) as fo:
             while True:
                 try:
-                    run = Run(self, len(self.runs)+1, fo)
+                    run = Run(self, len(self.runs)+1, fo, self.debug)
                 except NoRunError:
                     break
                 except Exception:
+                    if self.debug:
+                        traceback.print_exc(file=sys.stdout)
                     raise LogError('error parsing log file')
                 else:
                     self.runs.append(run)
@@ -91,9 +96,10 @@ class Subject:
 
 class Run:
 
-    def __init__(self, subject, run_number, fo):
+    def __init__(self, subject, run_number, fo, debug=False):
         self.subject = subject
         self.run_number = run_number
+        self.debug = debug
         self.t_end = None
         self.steps = []
         self.error = False
@@ -131,8 +137,12 @@ class Run:
         """
         state = 'start'
         headers = []
+        line_no = 0
         for line in fo:
+            line_no += 1
             line = line.strip()
+            if self.debug:
+                print '%d (%s) %s' % (line_no, state, line)
             if line.startswith('To report a problem, see'):
                 # this appears sometimes after a run (after we are done with 
                 # this processing), so it will show up at the start of our 
@@ -201,6 +211,8 @@ class Run:
                 self.t_end = dateutil.parser.parse(line[-28:])
                 state = 'end'
                 break
+        if self.debug:
+            print 'end state <%s>' % state
         return state
 
     @property
