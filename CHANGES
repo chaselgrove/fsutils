@@ -115,3 +115,11 @@ https://github.com/chaselgrove/fsutils
     fs_status (version 0.3.2):
 
         Moved log reading from fs_status to fsutils.logs.
+
+0.5.1 -- 21 August 2018
+
+    fs_status (version 0.3.3):
+
+        Added debug flag.
+
+        Added check for Surf Volume status line starting with #@#.
