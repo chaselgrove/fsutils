@@ -7,6 +7,9 @@ import os
 import traceback
 import datetime
 import dateutil.parser
+import re
+
+integer_re = re.compile('^\d+$')
 
 class LogError(Exception):
 
@@ -196,7 +199,21 @@ class Run:
                         # skip it here
                         continue
                 step = line[4:-28].strip()
-                t = dateutil.parser.parse(line[-28:])
+                try:
+                    t = dateutil.parser.parse(line[-28:])
+                except ValueError:
+                    parts = line.split()
+                    # strip "subjid " from the header to get the subject ID
+                    subjid = self.subjid[7:]
+                    sv_step = 'Surf Volume '
+                    if len(parts) == 4 \
+                            and parts[1] == subjid \
+                            and parts[2] in ('lh', 'rh') \
+                            and integer_re.search(parts[3]) \
+                            and self.steps \
+                            and self.steps[-1]['name'].startswith(sv_step):
+                        # this is a status line in a Surf Volume step
+                        continue
                 self.steps.append({'name': step, 'tstart': t})
                 state = 'step'
                 continue
