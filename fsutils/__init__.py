@@ -10,7 +10,7 @@ class FSUtilsError(Exception):
 def read_color_palette(fname):
     """read_color_palette(fname) -> palette
 
-    Reads a FreeSurfer-formatted color table and return a list of 256 (r, g, b) 
+    Reads a FreeSurfer-formatted color table and return a list of (r, g, b) 
     triples (0-255).
     """
     colors = {}
@@ -23,7 +23,7 @@ def read_color_palette(fname):
         colors[int(index)] = (int(r), int(g), int(b))
     fo.close()
     palette = []
-    for i in xrange(256):
+    for i in xrange(max(colors)+1):
         if i in colors:
             palette.extend(colors[i])
         else:
@@ -69,40 +69,45 @@ def slice(base_vol, overlay=None):
         overlay_data = overlay_vol.get_data()
         if overlay_data.shape != (256, 256, 256):
             raise ValueError('bad overlay volume shape')
-        if overlay_data.dtype != 'uint8':
+        if not numpy.issubdtype(overlay_data.dtype, numpy.integer):
             raise TypeError('bad overlay volume type')
 
-        full_overlay_im = PIL.Image.new('P', (1536, 512))
-        full_overlay_im.putpalette(palette)
+        full_overlay_im = PIL.Image.new('RGB', (1536, 512))
 
         full_overlay_mask_im = PIL.Image.new('1', (1536, 512))
 
+        rgb = numpy.array(palette, dtype='uint8')
+        rgb.shape = (rgb.shape[0]/3, 3)
+
         arr = overlay_data[:,:,128].transpose()
-        overlay_im = PIL.Image.fromarray(arr, 'P')
-        overlay_im = overlay_im.resize((512, 512))
+        rgb_arr = rgb[arr]
+        overlay_im = PIL.Image.fromarray(rgb_arr, mode='RGB')
+        overlay_im = overlay_im.resize((512, 512), resample=PIL.Image.NEAREST)
         full_overlay_im.paste(overlay_im, (0, 0))
-        mask_arr = arr.copy()
-        mask_arr[mask_arr>0] = 255
+        mask_arr = numpy.zeros(arr.shape, 'uint8')
+        mask_arr[arr>0] = 255
         overlay_mask_im = PIL.Image.fromarray(mask_arr, 'L')
         overlay_mask_im = overlay_mask_im.resize((512, 512), PIL.Image.NEAREST)
         full_overlay_mask_im.paste(overlay_mask_im, (0, 0))
 
         arr = numpy.fliplr(overlay_data[:,128,:]).transpose()
-        overlay_im = PIL.Image.fromarray(arr, 'L')
-        overlay_im = overlay_im.resize((512, 512))
+        rgb_arr = rgb[arr]
+        overlay_im = PIL.Image.fromarray(rgb_arr, mode='RGB')
+        overlay_im = overlay_im.resize((512, 512), resample=PIL.Image.NEAREST)
         full_overlay_im.paste(overlay_im, (512, 0))
-        mask_arr = arr.copy()
-        mask_arr[mask_arr>0] = 255
+        mask_arr = numpy.zeros(arr.shape, 'uint8')
+        mask_arr[arr>0] = 255
         overlay_mask_im = PIL.Image.fromarray(mask_arr, 'L')
         overlay_mask_im = overlay_mask_im.resize((512, 512), PIL.Image.NEAREST)
         full_overlay_mask_im.paste(overlay_mask_im, (512, 0))
 
         arr = overlay_data[128,:,:]
-        overlay_im = PIL.Image.fromarray(arr, 'L')
-        overlay_im = overlay_im.resize((512, 512))
+        rgb_arr = rgb[arr]
+        overlay_im = PIL.Image.fromarray(rgb_arr, mode='RGB')
+        overlay_im = overlay_im.resize((512, 512), resample=PIL.Image.NEAREST)
         full_overlay_im.paste(overlay_im, (1024, 0))
-        mask_arr = arr.copy()
-        mask_arr[mask_arr>0] = 255
+        mask_arr = numpy.zeros(arr.shape, 'uint8')
+        mask_arr[arr>0] = 255
         overlay_mask_im = PIL.Image.fromarray(mask_arr, 'L')
         overlay_mask_im = overlay_mask_im.resize((512, 512), PIL.Image.NEAREST)
         full_overlay_mask_im.paste(overlay_mask_im, (1024, 0))
