@@ -8,7 +8,7 @@ import argparse
 import nibabel
 import fsutils
 
-version = '0.1.2'
+version = '0.2.0'
 
 progname = os.path.basename(sys.argv[0])
 

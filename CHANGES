@@ -123,3 +123,12 @@ https://github.com/chaselgrove/fsutils
         Added debug flag.
 
         Added check for Surf Volume status line starting with #@#.
+
+0.6.0 -- 25 September 2019
+
+    Supporting integer data types for overlays in slice().
+
+    Fixed error message for overlays in slice().
+
+    fs_slice and fs_slice_subjects versions 0.2.0 as a result of these 
+    changes.

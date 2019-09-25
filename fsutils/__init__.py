@@ -1,5 +1,7 @@
 # See file COPYING distributed with fsutils for copyright and license.
 
+__version__ = '0.6.0'
+
 import numpy
 import PIL.Image
 

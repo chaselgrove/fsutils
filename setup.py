@@ -5,7 +5,7 @@ from setuptools import setup
 long_description = open('README.rst').read()
 
 setup(name='fsutils', 
-      version='0.5.1', 
+      version='0.6.0', 
       description='Utilities for working with FreeSurfer data', 
       author='Christian Haselgrove', 
       author_email='christian.haselgrove@umassmed.edu', 
