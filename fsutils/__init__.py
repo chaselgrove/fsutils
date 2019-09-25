@@ -68,9 +68,9 @@ def slice(base_vol, overlay=None):
 
         overlay_data = overlay_vol.get_data()
         if overlay_data.shape != (256, 256, 256):
-            raise ValueError('bad base volume shape')
+            raise ValueError('bad overlay volume shape')
         if overlay_data.dtype != 'uint8':
-            raise TypeError('bad base volume type')
+            raise TypeError('bad overlay volume type')
 
         full_overlay_im = PIL.Image.new('P', (1536, 512))
         full_overlay_im.putpalette(palette)
